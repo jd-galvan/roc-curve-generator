@@ -1,7 +1,7 @@
 # 📊 roc-curve-generator
 
 ## 🚀 Descripción
-**roc-curve-generator** es una herramienta para calcular métricas clave de clasificadores binarios, incluyendo:
+**roc-curve-generator** es una herramienta desarrollada para el curso Biometría del MIARFID en la UPV para calcular métricas clave de clasificadores binarios, incluyendo:
 
 - ✅ Curva ROC
 - 🎯 FP(FN = X) y su umbral
