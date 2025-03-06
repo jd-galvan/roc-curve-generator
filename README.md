@@ -14,7 +14,7 @@
 
 1. Clona este repositorio:
    ```bash
-   git clone https://github.com/tu-usuario/roc-curve-generator.git
+   git clone https://github.com/jd-galvan/roc-curve-generator.git
    ```
 2. Navega al directorio del proyecto:
    ```bash
