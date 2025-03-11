@@ -32,14 +32,6 @@ def leer_scores(archivo_clientes, archivo_impostores):
 
 
 def compute_metrics(df, desired_fn, desired_fp):
-    """
-    Calcula:
-      - Curva ROC (fpr, tpr) y AUC
-      - Umbral donde FN se acerca a 'desired_fn' (y su FP)
-      - Umbral donde FP se acerca a 'desired_fp' (y su FN)
-      - Umbral donde FP = FN (lo más cercano posible)
-      - d' usando la diferencia de medias y varianzas de clientes/impostores
-    """
     # Separar positivos y negativos
     df_pos = df[df["y_true"] == 1]["y_score"]
     df_neg = df[df["y_true"] == 0]["y_score"]
@@ -48,61 +40,52 @@ def compute_metrics(df, desired_fn, desired_fp):
     fpr, tpr, thresholds = roc_curve(df["y_true"], df["y_score"])
     auc_val = auc(fpr, tpr)
 
-    # Cálculo de FP y FN en valores absolutos
-    n_pos = len(df_pos)  # número de clientes
-    n_neg = len(df_neg)  # número de impostores
-    FP_counts = fpr * n_neg
-    FN_counts = (1 - tpr) * n_pos
+    # 1) FP(FN = X) y umbral
+    fnr = (1 - tpr)
+    idx_fnr = np.argmin(np.abs(fnr - desired_fn))
+    fpr_at_desired_fnr = fpr[idx_fnr]
+    threshold_fpr_at_desired_fnr = thresholds[idx_fnr]
 
-    # 1) FN = desired_fn (buscar umbral)
-    idx_fn = np.argmin(np.abs(FN_counts - desired_fn))
-    threshold_fn = thresholds[idx_fn]
-    fp_at_desired_fn = FP_counts[idx_fn]
-    fn_at_desired_fn = FN_counts[idx_fn]
+    # 2) FN(FP=X) y umbral
+    idx_fpr = np.argmin(np.abs(fpr - desired_fp))
+    fnr_at_desired_fpr = fnr[idx_fpr]
+    threshold_fnr_at_desired_fpr = thresholds[idx_fpr]
 
-    # 2) FP = desired_fp (buscar umbral)
-    idx_fp = np.argmin(np.abs(FP_counts - desired_fp))
-    threshold_fp = thresholds[idx_fp]
-    fp_at_desired_fp = FP_counts[idx_fp]
-    fn_at_desired_fp = FN_counts[idx_fp]
-
-    # 3) FP = FN (buscar umbral donde la diferencia sea mínima)
-    idx_eq = np.argmin(np.abs(FP_counts - FN_counts))
+    # 3) FP = FN y umbral
+    idx_eq = np.argmin(np.abs(fpr-fnr))
+    equal_fpr = fpr[idx_eq]
+    equal_fnr = fnr[idx_eq]
     threshold_eq = thresholds[idx_eq]
-    fp_eq = FP_counts[idx_eq]
-    fn_eq = FN_counts[idx_eq]
 
     # 4) Cálculo de d' (d-prime) según la fórmula:
     #    d' = (mu_pos - mu_neg) / sqrt( sigma_pos^2 + sigma_neg^2 )
-    mu_pos = df_pos.mean()
-    mu_neg = df_neg.mean()
-    sigma_pos = df_pos.std(ddof=1)  # ddof=1 para varianza muestral
-    sigma_neg = df_neg.std(ddof=1)
+    mu_pos = np.mean(df_pos)
+    mu_neg = np.mean(df_neg)
+    sigma_pos = np.std(df_pos)
+    sigma_neg = np.std(df_neg)
 
-    # Evitar división por cero si hay varianza nula
+    # Evitar división por cero
     if sigma_pos == 0 and sigma_neg == 0:
         d_prime = 0
     else:
         d_prime = (mu_pos - mu_neg) / np.sqrt((sigma_pos**2) + (sigma_neg**2))
 
     metrics = {
-        "desired_fn": {
-            "threshold": threshold_fn,
-            "FP": fp_at_desired_fn,
-            "FN": fn_at_desired_fn
+        "fpr_with_desired_fnr": {
+            "fpr": fpr_at_desired_fnr,
+            "threshold": threshold_fpr_at_desired_fnr,
         },
-        "desired_fp": {
-            "threshold": threshold_fp,
-            "FP": fp_at_desired_fp,
-            "FN": fn_at_desired_fp
+        "fnr_with_desired_fpr": {
+            "fnr": fnr_at_desired_fpr,
+            "threshold": threshold_fnr_at_desired_fpr
         },
-        "equal_FP_FN": {
+        "equal_fpr_fnr": {
             "threshold": threshold_eq,
-            "FP": fp_eq,
-            "FN": fn_eq
+            "fpr": equal_fpr,
+            "fnr": equal_fnr
         },
         "AUC": auc_val,
-        "D_prime": d_prime
+        "d_prime": d_prime
     }
 
     return metrics, fpr, tpr
@@ -128,18 +111,18 @@ def plot_roc(clientes1_file, impostores1_file, clientes2_file, impostores2_file,
 
     # Resumen de métricas en Markdown
     text = "## Resultados Dataset A:\n"
-    text += f"- **FN deseado** = {desired_fn} → Umbral: {metrics_A['desired_fn']['threshold']:.3f}, FP: {metrics_A['desired_fn']['FP']:.1f}, FN: {metrics_A['desired_fn']['FN']:.1f}\n"
-    text += f"- **FP deseado** = {desired_fp} → Umbral: {metrics_A['desired_fp']['threshold']:.3f}, FP: {metrics_A['desired_fp']['FP']:.1f}, FN: {metrics_A['desired_fp']['FN']:.1f}\n"
-    text += f"- **FP = FN** → Umbral: {metrics_A['equal_FP_FN']['threshold']:.3f}, FP: {metrics_A['equal_FP_FN']['FP']:.1f}, FN: {metrics_A['equal_FP_FN']['FN']:.1f}\n"
+    text += f"- **FP(FN={desired_fn})** = {metrics_A['fpr_with_desired_fnr']['fpr']:.3f} → Umbral: {metrics_A['fpr_with_desired_fnr']['threshold']:.3f}\n"
+    text += f"- **FN(FP={desired_fp})** = {metrics_A['fnr_with_desired_fpr']['fnr']:.3f} → Umbral: {metrics_A['fnr_with_desired_fpr']['threshold']:.3f}\n"
+    text += f"- **FP = FN** → Umbral: {metrics_A['equal_fpr_fnr']['threshold']:.3f}, FP: {metrics_A['equal_fpr_fnr']['fpr']:.1f}, FN: {metrics_A['equal_fpr_fnr']['fnr']:.1f}\n"
     text += f"- **Área bajo curva** = {metrics_A['AUC']:.3f}\n"
-    text += f"- **d'** = {metrics_A['D_prime']:.3f}\n\n"
+    text += f"- **d'** = {metrics_A['d_prime']:.3f}\n\n"
 
     text += "## Resultados Dataset B:\n"
-    text += f"- **FN deseado** = {desired_fn} → Umbral: {metrics_B['desired_fn']['threshold']:.3f}, FP: {metrics_B['desired_fn']['FP']:.1f}, FN: {metrics_B['desired_fn']['FN']:.1f}\n"
-    text += f"- **FP deseado** = {desired_fp} → Umbral: {metrics_B['desired_fp']['threshold']:.3f}, FP: {metrics_B['desired_fp']['FP']:.1f}, FN: {metrics_B['desired_fp']['FN']:.1f}\n"
-    text += f"- **FP = FN** → Umbral: {metrics_B['equal_FP_FN']['threshold']:.3f}, FP: {metrics_B['equal_FP_FN']['FP']:.1f}, FN: {metrics_B['equal_FP_FN']['FN']:.1f}\n"
+    text += f"- **FP(FN={desired_fn})** = {metrics_B['fpr_with_desired_fnr']['fpr']:.3f} → Umbral: {metrics_B['fpr_with_desired_fnr']['threshold']:.3f}\n"
+    text += f"- **FN(FP={desired_fp})** = {metrics_B['fnr_with_desired_fpr']['fnr']:.3f} → Umbral: {metrics_B['fnr_with_desired_fpr']['threshold']:.3f}\n"
+    text += f"- **FP = FN** → Umbral: {metrics_B['equal_fpr_fnr']['threshold']:.3f}, FP: {metrics_B['equal_fpr_fnr']['fpr']:.1f}, FN: {metrics_B['equal_fpr_fnr']['fnr']:.1f}\n"
     text += f"- **Área bajo curva** = {metrics_B['AUC']:.3f}\n"
-    text += f"- **d'** = {metrics_B['D_prime']:.3f}\n"
+    text += f"- **d'** = {metrics_B['d_prime']:.3f}\n\n"
 
     return plt, text
 
@@ -152,8 +135,8 @@ demo = gr.Interface(
         gr.File(label="Archivo de Impostores A"),
         gr.File(label="Archivo de Clientes B"),
         gr.File(label="Archivo de Impostores B"),
-        gr.Number(label="FN deseado", value=10),
-        gr.Number(label="FP deseado", value=10)
+        gr.Number(label="FN deseado", value=0.5),
+        gr.Number(label="FP deseado", value=0.5)
     ],
     outputs=["plot", "markdown"],
     title="Curvas ROC",
@@ -164,4 +147,4 @@ demo = gr.Interface(
     allow_flagging="never"
 )
 
-demo.launch()
+demo.launch(debug=True)

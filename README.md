@@ -7,7 +7,7 @@
 - 🎯 FP(FN = X) y su umbral
 - 🎯 FN(FP = X) y su umbral
 - ⚖️ FP = FN y su umbral
-- 📈 Área bajo la curva ROC (AUC)
+- 📈 Área bajo la curva ROC
 - 🔍 D-Prime (d')
 
 ## 📦 Instalación
