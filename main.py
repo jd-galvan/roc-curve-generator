@@ -6,10 +6,6 @@ from sklearn.metrics import roc_curve, auc
 
 
 def leer_scores(archivo_clientes, archivo_impostores):
-    """
-    Lee los archivos de clientes e impostores (sin encabezados) y retorna
-    un DataFrame con columnas: y_true y y_score.
-    """
     clientes_data = []
     with open(archivo_clientes.name, 'r') as f:
         for line in f:
