@@ -2,7 +2,6 @@ import gradio as gr
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, auc
 
 
 def leer_scores(archivo_clientes, archivo_impostores):
@@ -27,14 +26,31 @@ def leer_scores(archivo_clientes, archivo_impostores):
     return df
 
 
-def compute_metrics(df, desired_fn, desired_fp):
-    # Separar positivos y negativos
-    df_pos = df[df["y_true"] == 1]["y_score"]
-    df_neg = df[df["y_true"] == 0]["y_score"]
+def generate_roc_curve(y_true, y_score):
+    thresholds = sorted(set(y_score), reverse=True)
+    tpr = []
+    fpr = []
 
+    for thresh in thresholds:
+        tp = sum((y_score >= thresh) & (y_true == 1))
+        fn = sum((y_score < thresh) & (y_true == 1))
+        fp = sum((y_score >= thresh) & (y_true == 0))
+        tn = sum((y_score < thresh) & (y_true == 0))
+
+        tpr.append(tp / (tp + fn) if (tp + fn) > 0 else 0)
+        fpr.append(fp / (fp + tn) if (fp + tn) > 0 else 0)
+
+    return np.array(fpr), np.array(tpr), np.array(thresholds)
+
+
+def get_auc(fpr, tpr):
+    return np.trapezoid(tpr, fpr)
+
+
+def compute_metrics(df, desired_fn, desired_fp):
     # Curva ROC y AUC
-    fpr, tpr, thresholds = roc_curve(df["y_true"], df["y_score"])
-    auc_val = auc(fpr, tpr)
+    fpr, tpr, thresholds = generate_roc_curve(df["y_true"], df["y_score"])
+    auc_val = get_auc(fpr, tpr)
 
     # 1) FP(FN = X) y umbral
     fnr = (1 - tpr)
@@ -54,6 +70,10 @@ def compute_metrics(df, desired_fn, desired_fp):
     threshold_eq = thresholds[idx_eq]
 
     # 4) Cálculo de d' (d-prime) según la fórmula:
+    # Separar positivos y negativos
+    df_pos = df[df["y_true"] == 1]["y_score"]
+    df_neg = df[df["y_true"] == 0]["y_score"]
+
     #    d' = (mu_pos - mu_neg) / sqrt( sigma_pos^2 + sigma_neg^2 )
     mu_pos = np.mean(df_pos)
     mu_neg = np.mean(df_neg)
