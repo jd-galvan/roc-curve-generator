@@ -43,14 +43,33 @@ def generate_roc_curve(y_true, y_score):
     return np.array(fpr), np.array(tpr), np.array(thresholds)
 
 
-def get_auc(fpr, tpr):
-    return np.trapezoid(tpr, fpr)
+# def get_auc(fpr, tpr):
+#     return np.trapezoid(tpr, fpr)
+
+
+def get_auc(df):
+    pos_scores = df[df["y_true"] == 1]["y_score"].values
+    neg_scores = df[df["y_true"] == 0]["y_score"].values
+
+    total = 0
+    for pos in pos_scores:
+        for neg in neg_scores:
+            if pos > neg:
+                total += 1
+            elif pos == neg:
+                total += 0.5
+
+    total_pairs = len(pos_scores) * len(neg_scores)
+    if total_pairs == 0:
+        return 0.0  # Evitar división por cero
+    return total / total_pairs
 
 
 def compute_metrics(df, desired_fn, desired_fp):
     # Curva ROC y AUC
     fpr, tpr, thresholds = generate_roc_curve(df["y_true"], df["y_score"])
-    auc_val = get_auc(fpr, tpr)
+    # auc_val = get_auc(fpr, tpr)
+    auc_val = get_auc(df)
 
     # 1) FP(FN = X) y umbral
     fnr = (1 - tpr)
