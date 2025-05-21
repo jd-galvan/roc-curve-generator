@@ -22,7 +22,7 @@
    ```
 3. Crea un entorno virtual (opcional pero recomendado):
    ```bash
-   python -m venv venv
+   python3.12 -m venv venv
    source venv/bin/activate  # En Windows: venv\Scripts\activate
    ```
 4. Instala las dependencias:
@@ -34,7 +34,7 @@
 
 Para ejecutar la aplicación, simplemente corre:
    ```bash
-   python main.py
+   python3.12 main.py
    ```
 
 Si deseas probarlo con un conjunto de datos personalizado, asegúrate de modificar los datos de entrada dentro de `main.py` según sea necesario.
