@@ -32,10 +32,10 @@ def generate_roc_curve(y_true, y_score):
     fpr = []
 
     for thresh in thresholds:
-        tp = sum((y_score >= thresh) & (y_true == 1))
-        fn = sum((y_score < thresh) & (y_true == 1))
-        fp = sum((y_score >= thresh) & (y_true == 0))
-        tn = sum((y_score < thresh) & (y_true == 0))
+        tp = sum((y_score > thresh) & (y_true == 1))
+        fn = sum((y_score <= thresh) & (y_true == 1))
+        fp = sum((y_score > thresh) & (y_true == 0))
+        tn = sum((y_score <= thresh) & (y_true == 0))
 
         tpr.append(tp / (tp + fn) if (tp + fn) > 0 else 0)
         fpr.append(fp / (fp + tn) if (fp + tn) > 0 else 0)
