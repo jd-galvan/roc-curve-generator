@@ -147,10 +147,14 @@ def plot_roc(clientes1_file, impostores1_file, clientes2_file, impostores2_file,
 demo = gr.Interface(
     fn=plot_roc,
     inputs=[
-        gr.File(label="Archivo de Clientes A"),
-        gr.File(label="Archivo de Impostores A"),
-        gr.File(label="Archivo de Clientes B"),
-        gr.File(label="Archivo de Impostores B"),
+        gr.File(label="Archivo de Clientes A",
+                value="./scores/scoresA_clientes"),
+        gr.File(label="Archivo de Impostores A",
+                value="./scores/scoresA_impostores"),
+        gr.File(label="Archivo de Clientes B",
+                value="./scores/scoresB_clientes"),
+        gr.File(label="Archivo de Impostores B",
+                value="./scores/scoresB_impostores"),
         gr.Number(label="FN deseado", value=0.5),
         gr.Number(label="FP deseado", value=0.5)
     ],
@@ -160,7 +164,7 @@ demo = gr.Interface(
         "<strong>Asignatura</strong>: Biometría<br>"
         "<strong>Estudiante</strong>: José Daniel Galván<br>"
     ),
-    allow_flagging="never"
+    flagging_mode="never"
 )
 
 demo.launch(debug=True)
